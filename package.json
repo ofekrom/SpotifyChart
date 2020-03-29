@@ -1,0 +1,15 @@
+{
+  "name": "untitled3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "csv-parser": "^2.3.2",
+    "csvtojson": "^2.0.10",
+    "express": "^4.17.1",
+    "lodash": "^4.17.15",
+    "moment": "^2.24.0",
+    "redis": "^3.0.2"
+  }
+}
