@@ -1,23 +1,26 @@
 const chartCacheManager = require('../cache/chartCacheManager');
-//TODO Change date
-const LATEST = "latest";
 const {get} = require('lodash');
 const {ApiError, ApiResponse} = require('../utils/api');
+const chartUtils = require('../utils/chartUtils');
 const chartDownloader = require('../services/chartDownloadService');
-//TODO Check the input of type is global/regional, date is correct format, cadence is weekly/daily
+const assert = require('assert');
+
+//TODO Check date is correct format
 //TODO add timeouts to API calls
 
 async function download(req, res, next) {
-    // TODO use constants for regional, daily, global
-    const type = get(req.query, 'type', 'regional');
-    const cadence = get(req.query, 'cadence', 'daily');
-    const date = LATEST;
-    const countryCode = get(req.query, 'countryCode', 'global');
-    //TODO move to constant
-    const numItems = parseInt(get(req.query, 'numItems', 200));
-    const currentItem = parseInt(get(req.query, 'currentItem', 0));
+    const type = get(req.query, chartUtils.API_PARAM_TYPE, chartUtils.API_PARAM_TYPE_REGIONAL);
+    const cadence = get(req.query, chartUtils.API_PARAM_CADENCE, chartUtils.API_PARAM_CADENCE_DAILY);
+    const date = get(req.query, chartUtils.API_PARAM_DATE, chartUtils.API_PARAM_DATE_LATEST);
+    const countryCode = get(req.query, chartUtils.API_PARAM_COUNTRY_CODE, chartUtils.API_PARAM_COUNTRY_CODE_GLOBAL);
+    const numItems = parseInt(get(req.query, chartUtils.API_PARAM_NUM_ITEMS, chartUtils.DEFAULT_PAGINATION_NUM_ITEMS));
+    const currentItem = parseInt(get(req.query, chartUtils.API_PARAM_CURRENT_ITEM, chartUtils.DEFAULT_PAGINATION_CURRENT_ITEM));
+    validateParams(type, cadence, date, countryCode, numItems, currentItem);
     let chartResponse = await chartCacheManager.getChart(type, cadence, date, countryCode);
-    if (!chartResponse) {
+    //TODO Remove this if else, move the parsing to chartCacheManager
+    if (chartResponse) {
+        chartResponse = JSON.parse(chartResponse);
+    } else {
         try {
             chartResponse = await chartDownloader.downloadFormattedChart(type, cadence, date, countryCode);
         } catch (e) {
@@ -28,12 +31,19 @@ async function download(req, res, next) {
         await chartCacheManager.storeChart(type, cadence, date, countryCode, chartResponse);
     }
     try {
-
-        const result = pagedResponse(numItems, currentItem, JSON.parse(chartResponse));
+        const result = pagedResponse(numItems, currentItem, chartResponse);
         res.send(result);
     } catch (e) {
         return next(new ApiError(ApiResponse.BadRequest, e.message));
     }
+}
+
+function validateParams(type, cadence, date, countryCode, numItems, currentItem) {
+    assert(type === chartUtils.API_PARAM_TYPE_REGIONAL || type === chartUtils.API_PARAM_TYPE_VIRAL, 'type is invalid');
+    assert(cadence === chartUtils.API_PARAM_CADENCE_DAILY || type === chartUtils.API_PARAM_CADENCE_WEEKLY, 'cadence is invalid');
+    assert(countryCode, 'country code is invalid');
+    assert(Number.isInteger(numItems) && numItems > 0, 'Number of items is invalid');
+    assert(Number.isInteger(currentItem) && numItems >= 0, 'Current item is invalid');
 }
 
 function pagedResponse(numItems, currentItem, chartResponse) {
@@ -51,15 +61,15 @@ function pagedResponse(numItems, currentItem, chartResponse) {
         nextItemReference = currentItem + numItems + 1;
     }
     const finalArray = chartResponse.slice(currentItem, currentItem + numItems);
-    return {"tracks": finalArray, "nextItemReference": nextItemReference}
+    return {'tracks': finalArray, 'nextItemReference': nextItemReference}
 }
 
 //For testing purposes
 async function getTTL(req, res) {
-    const type = get(req.query, 'type', 'regional');
-    const cadence = get(req.query, 'cadence', 'daily');
-    const date = LATEST;
-    const countryCode = get(req.query, 'countryCode', 'global');
+    const type = get(req.query, chartUtils.API_PARAM_TYPE, chartUtils.API_PARAM_TYPE_REGIONAL);
+    const cadence = get(req.query, chartUtils.API_PARAM_CADENCE, chartUtils.API_PARAM_CADENCE_DAILY);
+    const date = chartUtils.API_PARAM_DATE_LATEST;
+    const countryCode = get(req.query, chartUtils.API_PARAM_COUNTRY_CODE, chartUtils.API_PARAM_COUNTRY_CODE_GLOBAL);
     const retrieved = await chartCacheManager.getTTL(type, cadence, date, countryCode);
     res.send({timestamp: retrieved});
 }

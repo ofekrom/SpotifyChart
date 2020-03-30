@@ -18,6 +18,7 @@ async function getChart(type, cadence, date, countryCode) {
 }
 
 async function expireKeyWithCacheStrategy(key, cacheStrategy) {
+    // TODO Do I need awaits here?
     switch (cacheStrategy) {
         case cacheUtils.cacheStrategies.HOURLY:
             return cacheClient.expire(key, 3600);

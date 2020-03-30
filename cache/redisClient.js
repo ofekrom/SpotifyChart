@@ -8,6 +8,8 @@ const expireAtAsync = promisify(client.expireat).bind(client);
 
 
 //TODO fail process if connection to Redis has failed
+// Retry
+// Should I handle disconnection?
 client.on('connect', function () {
     console.log('connected');
 });
