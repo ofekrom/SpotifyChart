@@ -9,7 +9,12 @@
     "csvtojson": "^2.0.10",
     "express": "^4.17.1",
     "lodash": "^4.17.15",
+    "mocha": "^7.1.1",
     "moment": "^2.24.0",
-    "redis": "^3.0.2"
+    "redis": "^3.0.2",
+    "body-parser": "latest"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0"
   }
 }

@@ -4,11 +4,11 @@ const {ApiError, ApiResponse} = require('../utils/api');
 const chartUtils = require('../utils/chartUtils');
 const chartDownloader = require('../services/chartDownloadService');
 const assert = require('assert');
-
 //TODO Check date is correct format
 //TODO add timeouts to API calls
 
-async function download(req, res, next) {
+async function getChart(req, res, next) {
+    // TODO move this to the middleware
     const type = get(req.query, chartUtils.API_PARAM_TYPE, chartUtils.API_PARAM_TYPE_REGIONAL);
     const cadence = get(req.query, chartUtils.API_PARAM_CADENCE, chartUtils.API_PARAM_CADENCE_DAILY);
     const date = get(req.query, chartUtils.API_PARAM_DATE, chartUtils.API_PARAM_DATE_LATEST);
@@ -17,25 +17,24 @@ async function download(req, res, next) {
     const currentItem = parseInt(get(req.query, chartUtils.API_PARAM_CURRENT_ITEM, chartUtils.DEFAULT_PAGINATION_CURRENT_ITEM));
     validateParams(type, cadence, date, countryCode, numItems, currentItem);
     let chartResponse = await chartCacheManager.getChart(type, cadence, date, countryCode);
-    //TODO Remove this if else, move the parsing to chartCacheManager
-    if (chartResponse) {
-        chartResponse = JSON.parse(chartResponse);
-    } else {
+    if (!chartResponse) {
         try {
             chartResponse = await chartDownloader.downloadFormattedChart(type, cadence, date, countryCode);
         } catch (e) {
             // TODO prettify error
             return next(new ApiError(ApiResponse.GeneralError, e.message));
         }
-        //TODO Do I need this await?
-        await chartCacheManager.storeChart(type, cadence, date, countryCode, chartResponse);
+        // I don't need to wait for storing in cache
+        chartCacheManager.storeChart(type, cadence, date, countryCode, chartResponse);
     }
+    let result;
     try {
-        const result = pagedResponse(numItems, currentItem, chartResponse);
-        res.send(result);
+        result = pagedResponse(numItems, currentItem, chartResponse);
     } catch (e) {
         return next(new ApiError(ApiResponse.BadRequest, e.message));
     }
+    res.send(result);
+
 }
 
 function validateParams(type, cadence, date, countryCode, numItems, currentItem) {
@@ -75,6 +74,6 @@ async function getTTL(req, res) {
 }
 
 Object.assign(module.exports, {
-    download,
+    getChart,
     getTTL
 });

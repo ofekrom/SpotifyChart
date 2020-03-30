@@ -4,7 +4,8 @@ const {promisify} = require("util");
 const getAsync = promisify(client.get).bind(client);
 const setAsync = promisify(client.set).bind(client);
 const ttlAsync = promisify(client.ttl).bind(client);
-const expireAtAsync = promisify(client.expireat).bind(client);
+const expireatAsync = promisify(client.expireat).bind(client);
+const expireAsync = promisify(client.expire).bind(client);
 
 
 //TODO fail process if connection to Redis has failed
@@ -16,5 +17,5 @@ client.on('connect', function () {
 
 
 Object.assign(module.exports, {
-    getAsync, setAsync, ttlAsync, expireAtAsync
+    getAsync, setAsync, ttlAsync, expireatAsync, expireAsync
 });

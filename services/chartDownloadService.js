@@ -17,6 +17,7 @@ async function downloadFormattedChart(type, cadence, date, countryCode) {
 
 async function formatChartResponse(data) {
     try {
+        //TODO move the text to constant
         data = data.substring(data.indexOf('Position,"Track Name",Artist,Streams,URL'));
     } catch (e) {
         throw new Error('Error with the format of this page, please try searching with different parameters');
